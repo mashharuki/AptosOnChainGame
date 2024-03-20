@@ -1,0 +1,19 @@
+{
+  "name": "AptosOnChainGame",
+  "version": "1.0.0",
+  "description": "",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "contract": "pnpm -F \"contract\"",
+    "frontend": "pnpm -F \"frontend\"",
+    "keyless-sample": "pnpm -F \"keyless-sample\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "engines": {
+    "node": "20.x",
+    "pnpm": "8.x"
+  }
+}
