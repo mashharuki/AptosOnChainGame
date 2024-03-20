@@ -41,9 +41,14 @@ async function main() {
   // get KeyPair
   const ephemeralKeyPair = getLocalEphemeralKeyPair(jwtNonce);
 
+  console.log({jwt});
+  console.log({jwtNonce});
+  console.log({ephemeralKeyPair});
+
   // DevNetに接続してインスタンスを生成
-  const config = new AptosConfig({network: Network.LOCAL});
+  const config = new AptosConfig({network: Network.DEVNET});
   const aptos = new Aptos(config);
+
   // keylessAccount情報を取得する。
   const keylessAccount = await aptos.deriveKeylessAccount({
     jwt,
