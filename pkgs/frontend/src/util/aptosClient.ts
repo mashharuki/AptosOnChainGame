@@ -5,6 +5,6 @@ import {Aptos, AptosConfig, Network} from "@aptos-labs/ts-sdk";
  * @returns
  */
 export function getAptosClient() {
-  const config = new AptosConfig({network: Network.TESTNET});
+  const config = new AptosConfig({network: Network.DEVNET});
   return new Aptos(config);
 }

@@ -2,12 +2,11 @@ import Image from "next/image";
 import { Inter } from "next/font/google";
 import {
   getLocalEphemeralKeyPair,
-  parseJWTFromURL,
   storeEphemeralKeyPair,
 } from "@/util/keyFunctions";
 import { EphemeralKeyPair } from "@aptos-labs/ts-sdk";
 import { BASE_LOGIN_URL, REDIRECT_URL } from "@/util/constants";
-import Router from "next/router";
+import { useRouter } from "next/router";
 import { jwtDecode } from "jwt-decode";
 import { getAptosClient } from "@/util/aptosClient";
 import { useEffect } from "react";
@@ -19,6 +18,8 @@ const inter = Inter({ subsets: ["latin"] });
  * @returns
  */
 export default function Home() {
+  const router = useRouter();
+
   /**
    * google認証してKeylessAccountを作成するメソッド
    */
@@ -34,47 +35,52 @@ export default function Home() {
     // create login url
     const loginUrl = `${BASE_LOGIN_URL}&nonce=${nonce}&redirect_uri=${REDIRECT_URL}&client_id=${clientId}`;
     // 認証画面に遷移させる
-    const authWindow = window.open(loginUrl, "_blank");
-
-    const checkAuthInterval = setInterval(() => {
-      if (authWindow!.closed) {
-        clearInterval(checkAuthInterval);
-        // 認証画面が閉じられた後にここで後続の処理を実行する
-        // この例では、後続の処理をここに記述する
-        console.log("認証が完了しました。後続の処理を実行します。");
-        // 元の画面にリダイレクトするなどの後続処理を実行する
-      }
-    }, 1000); // 1秒ごとに認証画面が閉じられたかどうかを確認する
-
-    const urlParams = new URLSearchParams(window.location.search);
-    const returnUrl = urlParams.get("returnUrl");
-
-    console.log(urlParams);
-
-    if (returnUrl) {
-      const jwt: any = parseJWTFromURL(window.location.href);
-
-      const payload = jwtDecode<{ nonce: string }>(jwt!);
-      const jwtNonce = payload.nonce;
-      // get KeyPair
-      const keyPair = getLocalEphemeralKeyPair(jwtNonce);
-
-      console.log({ jwt });
-      console.log({ jwtNonce });
-      console.log({ keyPair });
-
-      // DevNetに接続してインスタンスを生成
-      const aptos = getAptosClient();
-
-      // keylessAccount情報を取得する。
-      const keylessAccount = await aptos.deriveKeylessAccount({
-        jwt,
-        ephemeralKeyPair,
-      });
-
-      console.log("KeylessAccount:", { keylessAccount });
-    }
+    router.push(loginUrl);
   };
+
+  useEffect(() => {
+    const init = async () => {
+      // URLを取得
+      const currentURL = window.location.href;
+      console.log(currentURL);
+      const currentHash = window.location.hash;
+      // # を取り除いて id_token 部分を取得
+      const idToken = currentHash
+        .slice(1)
+        .split("&")
+        .find((param) => param.startsWith("id_token="));
+      // id_token の値のみを取得
+      const jwt = idToken ? idToken.split("=")[1] : null;
+      // console.log("idToken:", jwt);
+
+      if (jwt != null) {
+        try {
+          const payload = jwtDecode<{ nonce: string }>(jwt!);
+          const jwtNonce = payload.nonce;
+          // get KeyPair
+          const keyPair = getLocalEphemeralKeyPair(jwtNonce);
+
+          console.log({ jwt });
+          console.log({ jwtNonce });
+          console.log({ keyPair });
+
+          // create Aptos Client instance (connect to devnet)
+          const aptos = getAptosClient();
+
+          // keylessAccount情報を取得する。
+          const keylessAccount = await aptos.deriveKeylessAccount({
+            jwt,
+            ephemeralKeyPair: keyPair!,
+          });
+
+          console.log("KeylessAccount:", { keylessAccount });
+        } catch (err) {
+          console.error("err:", JSON.stringify(err));
+        }
+      }
+    };
+    init();
+  });
 
   return (
     <main
