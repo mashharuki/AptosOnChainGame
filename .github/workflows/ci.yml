@@ -40,7 +40,7 @@ jobs:
           path: "**/node_modules"
           key: ${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
       - name: frontend build
-        run: pnpm frontend dev
+        run: pnpm frontend build
         env:
           CI: false
           NEXT_PUBLIC_CLIENT_ID: ${{secrets.NEXT_PUBLIC_CLIENT_ID}}
