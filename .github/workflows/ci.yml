@@ -16,11 +16,12 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
+      - uses: pnpm/action-setup@v2.2.2
       - uses: actions/cache@v3
         id: npm-cache
         with:
           path: "**/node_modules"
-          key: ${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}-{{ checksum "patches.hash" }}
+          key: ${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}-{{ checksum "patches.hash" }}
       - name: Install packages
         run: pnpm install
   frontend-build:
@@ -29,10 +30,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
+      - uses: pnpm/action-setup@v2.2.2
       - uses: actions/cache@v3
         with:
           path: "**/node_modules"
-          key: ${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
+          key: ${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
       - name: frontend build
         run: pnpm frontend dev
         env:
