@@ -4,12 +4,19 @@ import {
   getLocalEphemeralKeyPair,
   storeEphemeralKeyPair,
 } from "@/util/keyFunctions";
-import { EphemeralKeyPair } from "@aptos-labs/ts-sdk";
-import { BASE_LOGIN_URL, REDIRECT_URL } from "@/util/constants";
+import { AccountAddress, Aptos, EphemeralKeyPair } from "@aptos-labs/ts-sdk";
+import {
+  ALICE_INITIAL_BALANCE,
+  BASE_LOGIN_URL,
+  COIN_STORE,
+  REDIRECT_URL,
+} from "@/util/constants";
 import { useRouter } from "next/router";
 import { jwtDecode } from "jwt-decode";
 import { getAptosClient } from "@/util/aptosClient";
-import { useEffect } from "react";
+import { useContext, useEffect, useState } from "react";
+import { GlobalContext } from "@/context/GlobalProvider";
+import Loading from "@/components/Loading";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,12 +25,16 @@ const inter = Inter({ subsets: ["latin"] });
  * @returns
  */
 export default function Home() {
+  const [address, setAddress] = useState<any>(undefined);
+  const [balance, setBalance] = useState<number>(0);
   const router = useRouter();
+  const globalContext = useContext(GlobalContext);
 
   /**
    * google認証してKeylessAccountを作成するメソッド
    */
   const login = async () => {
+    globalContext.setLoading(true);
     // const expiryDateSecs = BigInt(1718911224);
     // const blinder = new Uint8Array(31);
     // キーペア生成
@@ -38,6 +49,30 @@ export default function Home() {
     const loginUrl = `${BASE_LOGIN_URL}&nonce=${nonce}&redirect_uri=${REDIRECT_URL}&client_id=${clientId}`;
     // 認証画面に遷移させる
     router.push(loginUrl);
+  };
+
+  /**
+   * Prints the balance of an account
+   * @param aptos
+   * @param name
+   * @param address
+   * @returns {Promise<*>}
+   *
+   */
+  const getBalance = async (
+    aptos: Aptos,
+    name: string,
+    address: AccountAddress
+  ) => {
+    type Coin = { coin: { value: string } };
+    const resource = await aptos.getAccountResource<Coin>({
+      accountAddress: address,
+      resourceType: COIN_STORE,
+    });
+    const amount = Number(resource.coin.value);
+
+    console.log(`${name}'s balance is: ${amount}`);
+    return amount;
   };
 
   useEffect(() => {
@@ -57,6 +92,7 @@ export default function Home() {
 
       if (jwt != null) {
         try {
+          globalContext.setLoading(true);
           const payload = jwtDecode<{ nonce: string }>(jwt!);
           const jwtNonce = payload.nonce;
           // get KeyPair
@@ -78,39 +114,70 @@ export default function Home() {
           });
 
           console.log("KeylessAccount:", { keylessAccount });
+          console.log("KeylessAccount Address:", keylessAccount.accountAddress);
+
+          await aptos.faucet.fundAccount({
+            accountAddress: keylessAccount.accountAddress,
+            amount: ALICE_INITIAL_BALANCE,
+            options: { waitForIndexer: false },
+          });
+
+          // get balance
+          const keyAccountBalance = await getBalance(
+            aptos,
+            "keylessAccountAddress",
+            keylessAccount.accountAddress
+          );
+          console.log("KeyAccount's Balance:", keyAccountBalance);
+          setAddress(keylessAccount.accountAddress);
+          setBalance(keyAccountBalance);
         } catch (err) {
           console.error("err:", JSON.stringify(err));
+        } finally {
+          globalContext.setLoading(false);
         }
       }
     };
     init();
-  });
+  }, []);
 
   return (
     <main
       className={`flex min-h-screen flex-col items-center justify-between p-24 ${inter.className}`}
     >
-      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex"></div>
+      {globalContext.loading ? (
+        <Loading />
+      ) : (
+        <>
+          <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex"></div>
 
-      <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-full sm:before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full sm:after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700/10 after:dark:from-sky-900 after:dark:via-[#0141ff]/40 before:lg:h-[360px]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
+          <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-full sm:before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full sm:after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700/10 after:dark:from-sky-900 after:dark:via-[#0141ff]/40 before:lg:h-[360px]">
+            <Image
+              className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
+              src="/next.svg"
+              alt="Next.js Logo"
+              width={180}
+              height={37}
+              priority
+            />
+          </div>
 
-      <div className="mb-32 grid text-center lg:max-w-5xl lg:w-full lg:mb-0 lg:grid-cols-4 lg:text-left">
-        <button
-          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-          onClick={login}
-        >
-          SignUp/Login
-        </button>
-      </div>
+          <div className="mb-32 grid text-center lg:max-w-5xl lg:w-full lg:mb-0 lg:grid-cols-4 lg:text-left">
+            {address != undefined ? (
+              <>
+                <div>balance: {balance}</div>
+              </>
+            ) : (
+              <button
+                className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                onClick={login}
+              >
+                SignUp/Login
+              </button>
+            )}
+          </div>
+        </>
+      )}
     </main>
   );
 }
