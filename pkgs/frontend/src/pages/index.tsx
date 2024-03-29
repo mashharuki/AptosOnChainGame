@@ -24,6 +24,8 @@ export default function Home() {
    * google認証してKeylessAccountを作成するメソッド
    */
   const login = async () => {
+    // const expiryDateSecs = BigInt(1718911224);
+    // const blinder = new Uint8Array(31);
     // キーペア生成
     const ephemeralKeyPair = EphemeralKeyPair.generate();
     // localStorageに保存
@@ -63,6 +65,8 @@ export default function Home() {
           console.log({ jwt });
           console.log({ jwtNonce });
           console.log({ keyPair });
+
+          console.log("expiryDateSecs:", keyPair!.expiryDateSecs);
 
           // create Aptos Client instance (connect to devnet)
           const aptos = getAptosClient();
