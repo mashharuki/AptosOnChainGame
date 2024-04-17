@@ -101,6 +101,12 @@ export default function Home() {
         recipient: bob.accountAddress,
         amount: 100,
       });
+      console.log("transaction: ", transaction);
+      const signedTx = await aptos.sign({
+        signer: keylessAccount!,
+        transaction,
+      });
+      console.log("signedTx: ", signedTx);
       // sign & send Tx
       const committedTxn = await aptos.signAndSubmitTransaction({
         signer: keylessAccount!,
