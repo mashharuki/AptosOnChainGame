@@ -117,6 +117,14 @@ export default function Home() {
         transactionHash: committedTxn.hash,
       });
       console.log("response:", { committedTransactionResponse });
+
+      // get balance
+      const keyAccountBalance = await getBalance(
+        aptos,
+        "keylessAccountAddress",
+        keylessAccount!.accountAddress
+      );
+      setBalance(keyAccountBalance / ALICE_INITIAL_BALANCE);
     } catch (err) {
       console.error("err", { err });
     }
@@ -178,7 +186,7 @@ export default function Home() {
           console.log("KeyAccount's Balance:", keyAccountBalance);
           setKeylessAccount(keylessAccount);
           setAddress(keylessAccount.accountAddress);
-          setBalance(keyAccountBalance);
+          setBalance(keyAccountBalance / ALICE_INITIAL_BALANCE);
         } catch (err) {
           console.error("err:", JSON.stringify(err));
         } finally {
